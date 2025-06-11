@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抗日战争时期工厂内迁路线图</title>
+     <!-- 本地引入 ECharts 库 -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+  
+  <!-- 如需中国地图，添加此行 -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts/map/js/china.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #2c3e50, #0d1b2a);
+            font-family: 'Microsoft YaHei', sans-serif;
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/></svg>');
+            z-index: -1;
+            opacity: 0.5;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 15px;
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            letter-spacing: 2px;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+            color: #a9b7c6;
+        }
+        
+        .map-container {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .map-wrapper {
+            flex: 3;
+            height: 700px;
+            background: rgba(10, 15, 30, 0.7);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        #migrationMap {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .info-panel {
+            flex: 1;
+            background: rgba(10, 15, 30, 0.7);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .panel-title {
+            font-size: 1.8rem;
+            color: #ffd700;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+            text-align: center;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(25, 40, 65, 0.6);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            background: rgba(40, 65, 100, 0.7);
+        }
+        
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #ffd700;
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            font-size: 1rem;
+            color: #a9b7c6;
+        }
+        
+        .timeline {
+            margin-top: 30px;
+        }
+        
+        .timeline-title {
+            font-size: 1.3rem;
+            color: #ffd700;
+            margin-bottom: 15px;
+        }
+        
+        .timeline-item {
+            padding: 12px 15px;
+            margin-bottom: 12px;
+            background: rgba(25, 40, 65, 0.6);
+            border-radius: 6px;
+            border-left: 3px solid #ffd700;
+            position: relative;
+        }
+        
+        .timeline-year {
+            font-weight: bold;
+            color: #ffd700;
+            margin-bottom: 5px;
+        }
+        
+        .fact-box {
+            background: rgba(25, 40, 65, 0.6);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        
+        .fact-title {
+            font-size: 1.3rem;
+            color: #ffd700;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .fact-content {
+            line-height: 1.7;
+            font-size: 1.05rem;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            color: #a9b7c6;
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 20px;
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(10, 15, 30, 0.8);
+            border-radius: 8px;
+            padding: 15px;
+            z-index: 100;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .legend-text {
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 1100px) {
+            .map-container {
+                flex-direction: column;
+            }
+            
+            .map-wrapper {
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>抗日战争时期工厂内迁路线图</h1>
+        </header>
+        <!--图例-->
+        <div class="map-container">
+            <div class="map-wrapper">
+                <div id="migrationMap"></div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #eeff00;"></div>
+                        <div class="legend-text">迁出城市 (东部沿海)</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #32CD32;"></div>
+                        <div class="legend-text">迁入城市 (西部大后方)</div>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #FF4500;"></div>
+                        <div class="legend-text">主要迁移路线</div>
+                    </div>
+                </div>
+            </div>
+            
+         
+
+    <script>
+        // 初始化ECharts实例
+        const chart = echarts.init(document.getElementById('migrationMap'));
+        
+        // 定义城市坐标
+        const geoCoordMap = {
+            '上海': [121.47, 31.23],
+            '南京': [118.78, 32.04],
+            '武汉': [114.31, 30.52],
+            '广州': [113.23, 23.16],
+            '天津': [117.19, 39.13],
+            '青岛': [120.38, 36.07],
+            '重庆': [106.50, 29.53],
+            '成都': [104.06, 30.67],
+            '昆明': [102.73, 25.04],
+            '贵阳': [106.71, 26.57],
+            '西安': [108.93, 34.27],
+            '宝鸡': [107.13, 34.37],
+            '长沙': [112.97, 28.20],
+            '宜昌': [111.30, 30.70],
+            '衡阳': [112.61, 26.89]
+        };
+        
+        // 定义迁移路线数据
+        const migrationData = [
+            // 上海迁出
+            { from: '上海', to: '重庆', value: 120 },
+            { from: '上海', to: '成都', value: 80 },
+            { from: '上海', to: '昆明', value: 60 },
+            { from: '上海', to: '贵阳', value: 40 },
+            
+            // 南京迁出
+            { from: '南京', to: '重庆', value: 90 },
+            { from: '南京', to: '成都', value: 70 },
+            
+            // 武汉迁出
+            { from: '武汉', to: '重庆', value: 100 },
+            { from: '武汉', to: '成都', value: 60 },
+            { from: '武汉', to: '昆明', value: 50 },
+            { from: '武汉', to: '贵阳', value: 40 },
+            { from: '武汉', to: '西安', value: 30 },
+            
+            // 广州迁出
+            { from: '广州', to: '昆明', value: 70 },
+            { from: '广州', to: '贵阳', value: 50 },
+            { from: '广州', to: '重庆', value: 40 },
+            
+            // 其他城市迁出
+            { from: '天津', to: '西安', value: 60 },
+            { from: '青岛', to: '重庆', value: 50 },
+            { from: '长沙', to: '重庆', value: 40 },
+            { from: '宜昌', to: '成都', value: 30 }
+        ];
+        
+        // 转换数据格式
+        const convertData = function(data) {
+            const res = [];
+            for (let i = 0; i < data.length; i++) {
+                const dataItem = data[i];
+                const fromCoord = geoCoordMap[dataItem.from];
+                const toCoord = geoCoordMap[dataItem.to];
+                if (fromCoord && toCoord) {
+                    res.push({
+                        fromName: dataItem.from,
+                        toName: dataItem.to,
+                        coords: [fromCoord, toCoord],
+                        value: dataItem.value
+                    });
+                }
+            }
+            return res;
+        };
+        
+        // 生成迁移路线系列
+        const series = [];
+        
+        // 迁移路线
+        series.push({
+            name: '迁移路线',
+            type: 'lines',
+            zlevel: 2,
+            symbol: ['none', 'none'],
+            symbolSize: 10,
+            effect: {
+                show: true,
+                period: 4,
+                trailLength: 0.1,
+                symbol: 'arrow',
+                symbolSize: 10,
+                color: 'rgba(255, 215, 0, 0.8)'
+            },
+            lineStyle: {
+                color: '#FF4500',
+                width: 2,
+                opacity: 0.7,
+                curveness: 0.2
+            },
+            data: convertData(migrationData)
+        });
+        
+        // 起点城市
+        series.push({
+            name: '迁出城市',
+            type: 'scatter',
+            coordinateSystem: 'geo',
+            zlevel: 3,
+            symbolSize: function(val) {
+                return val[2] / 3;
+            },
+            label: {
+                show: true,
+                position: 'right',
+                formatter: '{b}',
+                fontSize: 12,
+                color: '#ffd700',
+                backgroundColor: 'rgba(10, 15, 30, 0.7)',
+                padding: [3, 5]
+            },
+            itemStyle: {
+                color: '#ffd700'
+            },
+            data: Object.keys(geoCoordMap).filter(city => 
+                ['上海', '南京', '武汉', '广州', '天津', '青岛', '长沙', '宜昌'].includes(city)
+            ).map(city => {
+                return {
+                    name: city,
+                    value: geoCoordMap[city].concat([80])
+                };
+            })
+        });
+        
+        // 终点城市
+        series.push({
+            name: '迁入城市',
+            type: 'scatter',
+            coordinateSystem: 'geo',
+            zlevel: 4,
+            symbolSize: function(val) {
+                return val[2] / 3;
+            },
+            label: {
+                show: true,
+                position: 'right',
+                formatter: '{b}',
+                fontSize: 12,
+                color: '#32CD32',
+                backgroundColor: 'rgba(10, 15, 30, 0.7)',
+                padding: [3, 5]
+            },
+            itemStyle: {
+                color: '#32CD32'
+            },
+            data: Object.keys(geoCoordMap).filter(city => 
+                ['重庆', '成都', '昆明', '贵阳', '西安', '宝鸡'].includes(city)
+            ).map(city => {
+                return {
+                    name: city,
+                    value: geoCoordMap[city].concat([100])
+                };
+            })
+        });
+        
+        // 设置图表选项
+        const option = {
+            backgroundColor: 'transparent',
+            title: {
+                text: '',
+                left: 'center',
+                textStyle: {
+                    color: '#ffd700',
+                    fontSize: 24
+                }
+            },
+            tooltip: {
+                trigger: 'item',
+                formatter: function(params) {
+                    if (params.seriesType === 'lines') {
+                        return `${params.data.fromName} → ${params.data.toName}<br>工厂数量: ${params.data.value}家`;
+                    } else {
+                        return params.name;
+                    }
+                },
+                backgroundColor: 'rgba(10, 15, 30, 0.85)',
+                borderColor: 'rgba(255, 215, 0, 0.5)',
+                textStyle: {
+                    color: '#e0e0e0'
+                }
+            },
+            geo: {
+                map: 'china',
+                roam: true,
+                zoom: 1.5,
+                center: [105, 36],
+                label: {
+                    emphasis: {
+                        show: false
+                    }
+                },
+                itemStyle: {
+                    normal: {
+                        areaColor: 'rgba(40, 65, 100, 0.6)',
+                        borderColor: '#0d1b2a',
+                        borderWidth: 1.5
+                    },
+                    emphasis: {
+                        areaColor: 'rgba(60, 95, 150, 0.8)'
+                    }
+                },
+                regions: [{
+                    name: '南海诸岛',
+                    itemStyle: {
+                        areaColor: 'rgba(40, 65, 100, 0.6)'
+                    }
+                }]
+            },
+            series: series
+        };
+        
+        // 使用配置项和数据显示图表
+        chart.setOption(option);
+        
+        // 响应窗口大小变化
+        window.addEventListener('resize', function() {
+            chart.resize();
+        });
+        
+        // 添加点击事件，显示迁移详情
+        chart.on('click', function(params) {
+            if (params.seriesType === 'lines') {
+                const message = `从${params.data.fromName}迁移至${params.data.toName}的工厂数量: ${params.data.value}家`;
+                alert(message);
+            }
+        });
+    </script>
+</body>
+</html>
