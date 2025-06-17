@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>战争历史武器流动图</title>
+    <meta charset="UTF-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/map/js/world.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#8B4513',     // 深棕色 - 代表战争、历史
+                        secondary: '#8B0000',   // 深红色 - 代表冲突、流血
+                        tertiary: '#4682B4',    // 钢蓝色 - 代表武器、军事
+                        dark: '#1A1A1D',        // 近黑色 - 背景
+                        light: '#DCDCDC',       // 浅灰色 - 文字
+                        accent: '#FFD700',      // 金色 - 强调、重要信息
+                    },
+                    fontFamily: {
+                        war: ['Georgia', 'serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            }
+            .text-shadow-glow {
+                text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+            }
+            .border-battle {
+                border: 2px solid #8B4513;
+                box-shadow: 0 0 15px rgba(139, 69, 19, 0.5);
+            }
+            .bg-pattern {
+                background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%238b4513' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-dark text-light font-war bg-pattern">
+    <!-- 页面顶部导航 -->
+    <header class="bg-dark/80 backdrop-blur-md border-b border-primary/30 sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fa fa-shield text-accent text-2xl"></i>
+                <h1 class="text-xl md:text-2xl font-bold text-accent text-shadow">战争历史武器流动图</h1>
+            </div>
+            <nav class="hidden md:flex space-x-6">
+                <button id="btn-info" class="text-light hover:text-accent transition-colors duration-300">
+                    <i class="fa fa-info-circle mr-1"></i>历史背景
+                </button>
+            </nav>
+            <button id="mobile-menu-btn" class="md:hidden text-light text-xl">
+                <i class="fa fa-bars"></i>
+            </button>
+        </div>
+        <!-- 移动端菜单 -->
+        <div id="mobile-menu" class="md:hidden bg-dark/95 backdrop-blur-md hidden">
+            <div class="container mx-auto px-4 py-2 flex flex-col space-y-3">
+                <button id="btn-info-mobile" class="text-light hover:text-accent py-2 transition-colors duration-300">
+                    <i class="fa fa-info-circle mr-1"></i>历史背景
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="container mx-auto px-4 py-6">
+        <!-- 介绍卡片 -->
+        <div class="mb-8 bg-dark/50 border-battle rounded-lg p-6 transform transition-all duration-500 hover:shadow-lg hover:shadow-primary/20">
+            <h2 class="text-2xl md:text-3xl font-bold mb-4 text-accent text-shadow-glow">
+                <i class="fa fa-map-o mr-2"></i>20世纪末重大战争武器流动可视化
+            </h2>
+            <p class="text-light/90 leading-relaxed">
+                本可视化地图展示了多场重大战争期间的主要武器流动路线。通过交互式地图，你可以了解这些战争中主要武器供应国和接收国之间的关系，以及武器流动的规模。
+            </p>
+        </div>
+
+        <!-- 控制面板 -->
+        <div class="mb-6 bg-dark/60 backdrop-blur-sm border border-primary/20 rounded-lg p-4 flex flex-wrap gap-4">
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-light/80 mb-2 text-sm">战争时期</label>
+                <div class="relative">
+                    <select id="war-period" class="w-full bg-dark/80 border border-primary/30 rounded-md py-2 px-3 text-light appearance-none focus:outline-none focus:ring-1 focus:ring-accent">
+                        <option value="gulf">海湾战争 (1990 - 1991)</option>
+                        <option value="afghan">阿富汗战争 (2001 - 2021)</option>
+                        <option value="libya">利比亚战争 (2011)</option>
+                        <option value="chechnya">车臣战争 (1994 - 1996, 1999 - 2009)</option>
+                        <option value="yugoslavia">南斯拉夫内战 (1991 - 2001)</option>
+                        <option value="ukraine">俄乌冲突 (2022 - 至今)</option>
+                        <option value="yemen">也门战争 (2015 - 至今)</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-light">
+                        <i class="fa fa-chevron-down text-xs"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-end">
+                <button id="apply-filters" class="bg-primary hover:bg-primary/80 text-light font-medium py-2 px-6 rounded-md transition-colors duration-300 transform hover:scale-105">
+                    <i class="fa fa-refresh mr-2"></i>应用筛选
+                </button>
+            </div>
+        </div>
+
+        <!-- 地图容器 -->
+        <div class="relative bg-dark/40 border border-primary/20 rounded-lg overflow-hidden">
+            <div id="map-container" class="w-full h-[70vh] min-h-[500px]"></div>
+
+            <!-- 地图加载状态 -->
+            <div id="map-loading" class="absolute inset-0 flex items-center justify-center bg-dark/80 z-10">
+                <div class="text-center">
+                    <div class="inline-block w-12 h-12 border-4 border-primary/30 border-t-accent rounded-full animate-spin mb-4"></div>
+                    <p class="text-light text-lg">正在加载地图数据...</p>
+                </div>
+            </div>
+
+            <!-- 图例 -->
+            <div class="absolute bottom-4 right-4 bg-dark/70 backdrop-blur-sm border border-primary/30 rounded-lg p-4 z-20">
+                <h3 class="text-accent font-medium mb-3 flex items-center">
+                    <i class="fa fa-list-ul mr-2"></i>图例
+                </h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                        <span>主要武器供应国</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                        <span>主要武器接收国</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-8 h-1 bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 mr-2"></div>
+                        <span>武器流动强度</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 数据统计卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+            <div class="bg-dark/50 border border-primary/20 rounded-lg p-5 transform transition-all duration-500 hover:shadow-lg hover:shadow-primary/20">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-accent font-medium mb-1">主要供应国</h3>
+                        <p id="top-supplier" class="text-2xl font-bold text-light">美国</p>
+                    </div>
+                    <div class="bg-primary/20 rounded-full p-3">
+                        <i class="fa fa-truck text-accent text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="w-full bg-dark/60 rounded-full h-2">
+                        <div id="supplier-percentage" class="bg-accent h-2 rounded-full" style="width: 45%"></div>
+                    </div>
+                    <p class="text-xs text-light/70 mt-1">占总供应量的 45%</p>
+                </div>
+            </div>
+
+            <div class="bg-dark/50 border border-primary/20 rounded-lg p-5 transform transition-all duration-500 hover:shadow-lg hover:shadow-primary/20">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-accent font-medium mb-1">主要接收国</h3>
+                        <p id="top-recipient" class="text-2xl font-bold text-light">伊拉克</p>
+                    </div>
+                    <div class="bg-secondary/20 rounded-full p-3">
+                        <i class="fa fa-flag text-secondary text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="w-full bg-dark/60 rounded-full h-2">
+                        <div id="recipient-percentage" class="bg-secondary h-2 rounded-full" style="width: 30%"></div>
+                    </div>
+                    <p class="text-xs text-light/70 mt-1">占总接收量的 30%</p>
+                </div>
+            </div>
+
+            <div class="bg-dark/50 border border-primary/20 rounded-lg p-5 transform transition-all duration-500 hover:shadow-lg hover:shadow-primary/20">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-accent font-medium mb-1">武器流动价值</h3>
+                        <p id="total-value" class="text-2xl font-bold text-light">$248亿</p>
+                    </div>
+                    <div class="bg-tertiary/20 rounded-full p-3">
+                        <i class="fa fa-money text-tertiary text-xl"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="w-full bg-dark/60 rounded-full h-2">
+                        <div id="value-trend" class="bg-tertiary h-2 rounded-full" style="width: 75%"></div>
+                    </div>
+                    <p class="text-xs text-light/70 mt-1">较上一时期增长 75%</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 历史背景信息 -->
+        <div id="history-info" class="mt-8 bg-dark/50 border border-primary/20 rounded-lg p-6 hidden">
+            <h2 class="text-2xl font-bold mb-4 text-accent">战争历史背景</h2>
+
+            <div class="space-y-6">
+                <div class="border-l-4 border-accent pl-4">
+                    <h3 class="text-xl font-medium mb-2 text-light">海湾战争 (1990 - 1991)</h3>
+                    <p class="text-light/80 leading-relaxed">
+                        海湾战争是联合国授权下的多国部队为恢复科威特主权、独立与领土完整并恢复其合法政权而对伊拉克进行的一场战争，是冷战结束后的第一场大规模武装冲突。
+                    </p>
+                    <p class="text-light/80 leading-relaxed mt-2">
+                        战争起因是伊拉克入侵科威特，以美国为首的多国部队在取得联合国授权后，于 1991 年 1 月 17 日开始对伊拉克发动空袭，代号为"沙漠风暴"行动。地面战持续仅 100 小时，最终伊拉克接受联合国决议并从科威特撤军。
+                    </p>
+                </div>
+
+                <div class="border-l-4 border-tertiary pl-4">
+                    <h3 class="text-xl font-medium mb-2 text-light">阿富汗战争 (2001 - 2021)</h3>
+                    <p class="text-light/80 leading-relaxed">
+                        阿富汗战争是 2001 年发生在美国本土的 9·11 恐怖袭击事件后，美国及其盟友对阿富汗境内的基地组织和塔利班政权发动的战争，是美国反恐战争的重要组成部分。
+                    </p>
+                    <p class="text-light/80 leading-relaxed mt-2">
+                        战争初期，美军迅速推翻了塔利班政权，但随后陷入了长期的游击战。2021 年，随着美国宣布全面撤军，塔利班重新控制阿富汗，战争以美国及其盟友的失败而告终。这场战争持续了近 20 年，成为美国历史上最长的战争。
+                    </p>
+                </div>
+
+                <div class="border-l-4 border-tertiary pl-4">
+                    <h3 class="text-xl font-medium mb-2 text-light">利比亚战争 (2011)</h3>
+                    <p class="text-light/80 leading-relaxed">
+                        利比亚战争是利比亚国内反对卡扎菲政权的武装冲突，后演变为西方国家军事干预的国际冲突。北约等国对利比亚进行了军事打击，最终卡扎菲政权倒台。
+                    </p>
+                </div>
+
+                <div class="border-l-4 border-tertiary pl-4">
+                    <h3 class="text-xl font-medium mb-2 text-light">车臣战争 (1994 - 1996, 1999 - 2009)</h3>
+                    <p class="text-light/80 leading-relaxed">
+                        车臣战争是俄罗斯联邦和其下属的车臣共和国分离分子之间爆发的两次战争。第一次车臣战争未达到预期平乱效果，第二次车臣战争俄罗斯取得胜利，维护了国家统一。
+                    </p>
+                </div>
+
+                <div class="border-l-4 border-tertiary pl-4">
+                    <h3 class="text-xl font-medium mb-2 text-light">南斯拉夫内战 (1991 - 2001)</h3>
+                    <p class="text-light/80 leading-relaxed">
+                        南斯拉夫内战是指一系列发生于南斯拉夫社会主义联邦共和国解体并导致其后继国家之间和各国内部的一系列战争。战争造成了大量人员伤亡和财产损失，也导致了南斯拉夫的最终解体。
+                    </p>
+                </div>
+
+                <div class="border-l-4 border-tertiary pl-4">
+                    <h3 class="text-xl font-medium mb-2 text-light">俄乌冲突 (2022 - 至今)</h3>
+                    <p class="text-light/80 leading-relaxed">
+                        俄乌冲突是指 2022 年 2 月以来俄罗斯与乌克兰之间的军事冲突。冲突的起因涉及地缘政治、北约东扩等多方面因素。这场冲突对地区和国际政治、经济秩序产生了重大影响。
+                    </p>
+                </div>
+
+                <div class="border-l-4 border-tertiary pl-4">
+                    <h3 class="text-xl font-medium mb-2 text-light">也门战争 (2015 - 至今)</h3>
+                    <p class="text-light/80 leading-relaxed">
+                        也门战争是也门国内政治派别之间的武装冲突，沙特阿拉伯等国组成的联军介入支持一方，胡塞武装则得到伊朗等国的支持。战争造成了也门严重的人道主义危机。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="mt-12 bg-dark/80 border-t border-primary/30 py-6">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <p class="text-light/60 text-sm">© 2025 战争历史研究中心 | 数据可视化项目</p>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="#" class="text-light/60 hover:text-accent transition-colors duration-300">
+                        <i class="fa fa-history"></i>
+                    </a>
+                    <a href="#" class="text-light/60 hover:text-accent transition-colors duration-300">
+                        <i class="fa fa-book"></i>
+                    </a>
+                    <a href="#" class="text-light/60 hover:text-accent transition-colors duration-300">
+                        <i class="fa fa-globe"></i>
+                    </a>
+                    <a href="#" class="text-light/60 hover:text-accent transition-colors duration-300">
+                        <i class="fa fa-github"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 初始化地图
+        const mapChart = echarts.init(document.getElementById('map-container'));
+
+        // 地图数据
+        const warData = {
+            gulf: {
+                title: "海湾战争时期武器流动图 (1990 - 1991)",
+                suppliers: [
+                    { name: "United States", value: 45, coords: [-98.583333, 39.833333] },
+                    { name: "Russia", value: 25, coords: [105.318756, 60.650172] },
+                    { name: "France", value: 15, coords: [2.213749, 46.227638] },
+                    { name: "United Kingdom", value: 10, coords: [-3.435973, 55.378051] },
+                    { name: "China", value: 5, coords: [104.195397, 35.86166] }
+                ],
+                recipients: [
+                    { name: "Iraq", value: 30, coords: [43.679291, 33.223191] },
+                    { name: "Saudi Arabia", value: 25, coords: [45.079162, 23.885942] },
+                    { name: "Kuwait", value: 15, coords: [47.481766, 29.31166] },
+                    { name: "Israel", value: 10, coords: [34.851612, 31.046051] },
+                    { name: "Turkey", value: 8, coords: [35.243322, 38.963745] },
+                    { name: "Qatar", value: 7, coords: [51.183884, 25.354826] },
+                    { name: "United Arab Emirates", value: 5, coords: [53.847818, 23.424076] }
+                ],
+                flows: [
+                    { from: "United States", to: "Iraq", value: 8 },
+                    { from: "United States", to: "Saudi Arabia", value: 15 },
+                    { from: "United States", to: "Kuwait", value: 10 },
+                    { from: "United States", to: "Israel", value: 5 },
+                    { from: "Russia", to: "Iraq", value: 20 },
+                    { from: "Russia", to: "Saudi Arabia", value: 3 },
+                    { from: "France", to: "Iraq", value: 7 },
+                    { from: "France", to: "Saudi Arabia", value: 5 },
+                    { from: "France", to: "Qatar", value: 3 },
+                    { from: "United Kingdom", to: "Saudi Arabia", value: 5 },
+                    { from: "United Kingdom", to: "Kuwait", value: 3 },
+                    { from: "China", to: "Iraq", value: 5 }
+                ],
+                topSupplier: "美国",
+                topRecipient: "伊拉克",
+                totalValue: "$248亿",
+                valuePercentage: 75
+            },
+            afghan: {
+                title: "阿富汗战争时期武器流动图 (2001 - 2021)",
+                suppliers: [
+                    { name: "United States", value: 60, coords: [-98.583333, 39.833333] },
+                    { name: "Russia", value: 15, coords: [105.318756, 60.650172] },
+                    { name: "United Kingdom", value: 10, coords: [-3.435973, 55.378051] },
+                    { name: "Pakistan", value: 8, coords: [69.345116, 30.375321] },
+                    { name: "Germany", value: 7, coords: [10.451526, 51.165691] }
+                ],
+                recipients: [
+                    { name: "Afghanistan", value: 40, coords: [66.004734, 33.93911] },
+                    { name: "Pakistan", value: 25, coords: [69.345116, 30.375321] },
+                    { name: "Iraq", value: 15, coords: [43.679291, 33.223191] },
+                    { name: "Kyrgyzstan", value: 8, coords: [74.766098, 41.20438] },
+                    { name: "Tajikistan", value: 7, coords: [71.276093, 38.861034] },
+                    { name: "Uzbekistan", value: 5, coords: [64.585262, 41.377491] }
+                ],
+                flows: [
+                    { from: "United States", to: "Afghanistan", value: 25 },
+                    { from: "United States", to: "Pakistan", value: 15 },
+                    { from: "United States", to: "Iraq", value: 12 },
+                    { from: "Russia", to: "Afghanistan", value: 5 },
+                    { from: "Russia", to: "Pakistan", value: 3 },
+                    { from: "Russia", to: "Tajikistan", value: 4 },
+                    { from: "United Kingdom", to: "Afghanistan", value: 8 },
+                    { from: "United Kingdom", to: "Iraq", value: 3 },
+                    { from: "Pakistan", to: "Afghanistan", value: 8 },
+                    { from: "Germany", to: "Afghanistan", value: 5 },
+                    { from: "Germany", to: "Kyrgyzstan", value: 2 }
+                ],
+                topSupplier: "美国",
+                topRecipient: "阿富汗",
+                totalValue: "$783亿",
+                valuePercentage: 120
+            },
+            libya: {
+                title: "利比亚战争时期武器流动图 (2011)",
+                suppliers: [
+                    { name: "United States", value: 30, coords: [-98.583333, 39.833333] },
+                    { name: "France", value: 25, coords: [2.213749, 46.227638] },
+                    { name: "United Kingdom", value: 20, coords: [-3.435973, 55.378051] },
+                    { name: "Italy", value: 15, coords: [12.56738, 41.87194] },
+                    { name: "Qatar", value: 10, coords: [51.183884, 25.354826] }
+                ],
+                recipients: [
+                    { name: "Libya", value: 100, coords: [17.228331, 26.3351] }
+                ],
+                flows: [
+                    { from: "United States", to: "Libya", value: 30 },
+                    { from: "France", to: "Libya", value: 25 },
+                    { from: "United Kingdom", to: "Libya", value: 20 },
+                    { from: "Italy", to: "Libya", value: 15 },
+                    { from: "Qatar", to: "Libya", value: 10 }
+                ],
+                topSupplier: "美国",
+                topRecipient: "利比亚",
+                totalValue: "$120亿",
+                valuePercentage: 50
+            },
+            chechnya: {
+                title: "车臣战争时期武器流动图 (1994 - 1996, 1999 - 2009)",
+                suppliers: [
+                    { name: "Russia", value: 80, coords: [105.318756, 60.650172] },
+                    { name: "Some External Forces", value: 20, coords: [0, 0] } // 示意外部势力，坐标仅为占位
+                ],
+                recipients: [
+                    { name: "Chechnya", value: 100, coords: [45.783333, 43.316667] }
+                ],
+                flows: [
+                    { from: "Russia", to: "Chechnya", value: 80 },
+                    { from: "Some External Forces", to: "Chechnya", value: 20 }
+                ],
+                topSupplier: "俄罗斯",
+                topRecipient: "车臣",
+                totalValue: "$50亿",
+                valuePercentage: 30
+            },
+            yugoslavia: {
+                title: "南斯拉夫内战时期武器流动图 (1991 - 2001)",
+                suppliers: [
+                    { name: "Russia", value: 30, coords: [105.318756, 60.650172] },
+                    { name: "United States", value: 25, coords: [-98.583333, 39.833333] },
+                    { name: "Germany", value: 20, coords: [10.451526, 51.165691] },
+                    { name: "France", value: 15, coords: [2.213749, 46.227638] },
+                    { name: "United Kingdom", value: 10, coords: [-3.435973, 55.378051] }
+                ],
+                recipients: [
+                    { name: "Yugoslavia", value: 100, coords: [20.566667, 44.816667] }
+                ],
+                flows: [
+                    { from: "Russia", to: "Yugoslavia", value: 30 },
+                    { from: "United States", to: "Yugoslavia", value: 25 },
+                    { from: "Germany", to: "Yugoslavia", value: 20 },
+                    { from: "France", to: "Yugoslavia", value: 15 },
+                    { from: "United Kingdom", to: "Yugoslavia", value: 10 }
+                ],
+                topSupplier: "俄罗斯",
+                topRecipient: "南斯拉夫",
+                totalValue: "$200亿",
+                valuePercentage: 60
+            },
+            ukraine: {
+                title: "俄乌冲突时期武器流动图 (2022 - 至今)",
+                suppliers: [
+                    { name: "United States", value: 40, coords: [-98.583333, 39.833333] },
+                    { name: "United Kingdom", value: 20, coords: [-3.435973, 55.378051] },
+                    { name: "Poland", value: 15, coords: [19.145136, 51.919438] },
+                    { name: "Germany", value: 10, coords: [10.451526, 51.165691] },
+                    { name: "France", value: 5, coords: [2.213749, 46.227638] },
+                    { name: "Russia", value: 0, coords: [105.318756, 60.650172] } // 自身为冲突方，此处设为 0 示意
+                ],
+                recipients: [
+                    { name: "Ukraine", value: 90, coords: [31.16558, 48.379433] },
+                    { name: "Russia", value: 10, coords: [105.318756, 60.650172] } // 俄罗斯也有少量武器流动示意
+                ],
+                flows: [
+                    { from: "United States", to: "Ukraine", value: 40 },
+                    { from: "United Kingdom", to: "Ukraine", value: 20 },
+                    { from: "Poland", to: "Ukraine", value: 15 },
+                    { from: "Germany", to: "Ukraine", value: 10 },
+                    { from: "France", to: "Ukraine", value: 5 },
+                    { from: "Russia", to: "Russia", value: 10 } // 内部流动示意
+                ],
+                topSupplier: "美国",
+                topRecipient: "乌克兰",
+                totalValue: "$500亿",
+                valuePercentage: 80
+            },
+            yemen: {
+                title: "也门战争时期武器流动图 (2015 - 至今)",
+                suppliers: [
+                    { name: "United States", value: 35, coords: [-98.583333, 39.833333] },
+                    { name: "Saudi Arabia", value: 30, coords: [45.079162, 23.885942] },
+                    { name: "United Kingdom", value: 15, coords: [-3.435973, 55.378051] },
+                    { name: "Iran", value: 10, coords: [53.688046, 32.427908] },
+                    { name: "France", value: 10, coords: [2.213749, 46.227638] }
+                ],
+                recipients: [
+                    { name: "Yemen", value: 100, coords: [48.516388, 15.552727] }
+                ],
+                flows: [
+                    { from: "United States", to: "Yemen", value: 35 },
+                    { from: "Saudi Arabia", to: "Yemen", value: 30 },
+                    { from: "United Kingdom", to: "Yemen", value: 15 },
+                    { from: "Iran", to: "Yemen", value: 10 },
+                    { from: "France", to: "Yemen", value: 10 }
+                ],
+                topSupplier: "美国",
+                topRecipient: "也门",
+                totalValue: "$180亿",
+                valuePercentage: 40
+            }
+        };
+
+        // 格式化国家名称
+        const countryNames = {
+            "United States": "美国",
+            "Russia": "俄罗斯",
+            "France": "法国",
+            "United Kingdom": "英国",
+            "China": "中国",
+            "Iraq": "伊拉克",
+            "Saudi Arabia": "沙特阿拉伯",
+            "Kuwait": "科威特",
+            "Israel": "以色列",
+            "Turkey": "土耳其",
+            "Qatar": "卡塔尔",
+            "United Arab Emirates": "阿联酋",
+            "Afghanistan": "阿富汗",
+            "Pakistan": "巴基斯坦",
+            "Kyrgyzstan": "吉尔吉斯斯坦",
+            "Tajikistan": "塔吉克斯坦",
+            "Uzbekistan": "乌兹别克斯坦",
+            "Germany": "德国",
+            "Libya": "利比亚",
+            "Chechnya": "车臣",
+            "Yugoslavia": "南斯拉夫",
+            "Ukraine": "乌克兰",
+            "Yemen": "也门",
+            "Italy": "意大利",
+            "Poland": "波兰",
+            "Iran": "伊朗",
+            "Some External Forces": "外部势力"
+        };
+
+        // 初始化地图配置
+        function initMapOptions(period = "gulf") {
+            const data = warData[period];
+
+            // 构建地图数据
+            const supplierData = data.suppliers.map(item => ({
+                name: countryNames[item.name] || item.name,
+                value: [...item.coords, item.value],
+                itemStyle: {
+                    color: '#ef4444' // 红色系
+                }
+            }));
+
+            const recipientData = data.recipients.map(item => ({
+                name: countryNames[item.name] || item.name,
+                value: [...item.coords, item.value],
+                itemStyle: {
+                    color: '#3b82f6' // 蓝色系
+                }
+            }));
+
+            // 构建流动线数据
+            const linesData = [];
+            const effectScatterData = [];
+
+            data.flows.forEach(flow => {
+                const fromCountry = countryNames[flow.from] || flow.from;
+                const toCountry = countryNames[flow.to] || flow.to;
+
+                const fromCoord = data.suppliers.find(s => s.name === flow.from)?.coords;
+                const toCoord = data.recipients.find(r => r.name === flow.to)?.coords;
+
+                if (fromCoord && toCoord) {
+                    linesData.push({
+                        coords: [fromCoord, toCoord],
+                        value: flow.value
+                    });
+
+                    effectScatterData.push({
+                        name: `${fromCountry} → ${toCountry}`,
+                        value: [...toCoord, flow.value]
+                    });
+                }
+            });
+
+            // 地图选项配置
+            return {
+                title: {
+                    text: data.title,
+                    left: 'center',
+                    textStyle: {
+                        color: '#FFD700',
+                        fontSize: 20,
+                        fontFamily: 'Georgia, serif',
+                        textShadowBlur: 10,
+                        textShadowColor: '#8B4513'
+                    }
+                },
+                tooltip: {
+                    trigger: 'item',
+                    backgroundColor: 'rgba(17, 17, 17, 0.9)',
+                    borderColor: '#8B4513',
+                    borderWidth: 1,
+                    textStyle: {
+                        color: '#DCDCDC'
+                    },
+                    formatter: function (params) {
+                        if (params.seriesType === 'effectScatter') {
+                            return `<div class="text-accent font-bold">${params.name}</div>
+                            <div>武器流动量: ${params.value[2]}</div>`;
+                        }
+                        return `<div class="text-accent font-bold">${params.name}</div>
+                        <div>权重: ${params.value[2] || params.value}</div>`;
+                    }
+                },
+                geo: {
+                    map: 'world',
+                    roam: true,
+                    zoom: 1.2,
+                    center: [65, 25],
+                    itemStyle: {
+                        normal: {
+                            areaColor: '#1A1A1D',
+                            borderColor: '#444',
+                            borderWidth: 0.5
+                        },
+                        emphasis: {
+                            areaColor: '#2A2A2D'
+                        }
+                    },
+                    label: {
+                        show: false
+                    }
+                },
+                series: [
+                    {
+                        name: '供应国',
+                        type: 'scatter',
+                        coordinateSystem: 'geo',
+                        data: supplierData,
+                        symbolSize: function (val) {
+                            return Math.max(5, val[2] * 0.8);
+                        },
+                        label: {
+                            show: true,
+                            formatter: function (params) {
+                                return params.name;
+                            },
+                            position: 'right',
+                            color: '#fff',
+                            fontSize: 12,
+                            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                            padding: [3, 5],
+                            borderRadius: 3
+                        },
+                        itemStyle: {
+                            color: '#ef4444',
+                            shadowBlur: 20,
+                            shadowColor: '#ef4444'
+                        }
+                    },
+                    {
+                        name: '接收国',
+                        type: 'scatter',
+                        coordinateSystem: 'geo',
+                        data: recipientData,
+                        symbolSize: function (val) {
+                            return Math.max(5, val[2] * 0.8);
+                        },
+                        label: {
+                            show: true,
+                            formatter: function (params) {
+                                return params.name;
+                            },
+                            position: 'right',
+                            color: '#fff',
+                            fontSize: 12,
+                            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                            padding: [3, 5],
+                            borderRadius: 3
+                        },
+                        itemStyle: {
+                            color: '#3b82f6',
+                            shadowBlur: 20,
+                            shadowColor: '#3b82f6'
+                        }
+                    },
+                    {
+                        name: '武器流动',
+                        type: 'lines',
+                        zlevel: 1,
+                        effect: {
+                            show: true,
+                            period: 6,
+                            trailLength: 0.7,
+                            trailWidth: 2,
+                            trailOpacity: 1,
+                            trailColor: {
+                                type: 'linear',
+                                x: 0, y: 0, x2: 1, y2: 1,
+                                colorStops: [
+                                    { offset: 0, color: '#ef4444' },
+                                    { offset: 0.5, color: '#f59e0b' },
+                                    { offset: 1, color: '#10b981' }
+                                ]
+                            },
+                            symbol: 'circle',
+                            symbolSize: 3
+                        },
+                        lineStyle: {
+                            normal: {
+                                width: 1,
+                                opacity: 0.6,
+                                curveness: 0.2,
+                                color: {
+                                    type: 'linear',
+                                    x: 0, y: 0, x2: 1, y2: 1,
+                                    colorStops: [
+                                        { offset: 0, color: '#ef4444' },
+                                        { offset: 0.5, color: '#f59e0b' },
+                                        { offset: 1, color: '#10b981' }
+                                    ]
+                                }
+                            }
+                        },
+                        data: linesData
+                    },
+                    {
+                        name: '流动终点',
+                        type: 'effectScatter',
+                        coordinateSystem: 'geo',
+                        data: effectScatterData,
+                        symbolSize: function (val) {
+                            return Math.max(4, val[2] * 0.5);
+                        },
+                        showEffectOn: 'render',
+                        rippleEffect: {
+                            brushType: 'stroke'
+                        },
+                        hoverAnimation: true,
+                        label: {
+                            show: false
+                        },
+                        itemStyle: {
+                            color: '#f59e0b',
+                            shadowBlur: 10,
+                            shadowColor: '#f59e0b'
+                        },
+                        zlevel: 2
+                    }
+                ]
+            };
+        }
+
+        // 更新统计数据
+        function updateStats(period = "gulf") {
+            const data = warData[period];
+            // 修复这里，使用 data.totalValue 而不是 data.total
+            document.getElementById('total-value').textContent = data.totalValue;
+
+            // 更新进度条
+            document.getElementById('supplier-percentage').style.width = `${data.suppliers[0].value}%`;
+            document.getElementById('recipient-percentage').style.width = `${data.recipients[0].value}%`;
+            document.getElementById('value-trend').style.width = `${data.valuePercentage}%`;
+
+            // 更新百分比文本
+            document.querySelector('#supplier-percentage + p').textContent = `占总供应量的 ${data.suppliers[0].value}%`;
+            document.querySelector('#recipient-percentage + p').textContent = `占总接收量的 ${data.recipients[0].value}%`;
+            document.querySelector('#value-trend + p').textContent = `较上一时期增长 ${data.valuePercentage}%`;
+
+            // 更新主要供应国和接收国
+            document.getElementById('top-supplier').textContent = data.topSupplier;
+            document.getElementById('top-recipient').textContent = data.topRecipient;
+        }
+
+        // 加载地图
+        function loadMap(period = "gulf") {
+            // 显示加载状态
+            document.getElementById('map-loading').classList.remove('hidden');
+
+            // 模拟加载延迟
+            setTimeout(() => {
+                try {
+                    const options = initMapOptions(period);
+                    mapChart.setOption(options);
+
+                    // 隐藏加载状态
+                    document.getElementById('map-loading').classList.add('hidden');
+
+                    // 更新统计数据
+                    updateStats(period);
+                } catch (error) {
+                    console.error("地图加载错误:", error);
+                    document.getElementById('map-loading').innerHTML = `
+                        <div class="text-center">
+                            <div class="inline-block w-12 h-12 border-4 border-red-500 border-t-accent rounded-full animate-spin mb-4"></div>
+                            <p class="text-red-400 text-lg">地图加载失败</p>
+                            <p class="text-light/70 text-sm">请刷新页面重试</p>
+                        </div>
+                    `;
+                }
+            }, 800);
+        }
+
+        // 初始化页面
+        function initPage() {
+            // 加载默认地图
+            loadMap();
+
+            // 移动菜单切换
+            document.getElementById('mobile-menu-btn').addEventListener('click', function () {
+                const mobileMenu = document.getElementById('mobile-menu');
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            // 战争时期选择
+            document.getElementById('war-period').addEventListener('change', function () {
+                loadMap(this.value);
+            });
+
+            // 应用筛选按钮
+            document.getElementById('apply-filters').addEventListener('click', function () {
+                const warPeriod = document.getElementById('war-period').value;
+                loadMap(warPeriod);
+
+                // 添加按钮点击效果
+                this.classList.add('scale-95');
+                setTimeout(() => {
+                    this.classList.remove('scale-95');
+                }, 200);
+            });
+
+            // 导航按钮事件
+            const navButtons = [
+                'btn-info', 'btn-info-mobile'
+            ];
+
+            navButtons.forEach(btnId => {
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    btn.addEventListener('click', function () {
+                        // 隐藏移动菜单
+                        document.getElementById('mobile-menu').classList.add('hidden');
+
+                        // 处理按钮点击
+                        if (btnId.includes('info')) {
+                            const infoSection = document.getElementById('history-info');
+                            infoSection.classList.toggle('hidden');
+
+                            // 如果显示信息，滚动到信息部分
+                            if (!infoSection.classList.contains('hidden')) {
+                                infoSection.scrollIntoView({ behavior: 'smooth' });
+                            }
+                        }
+
+                        // 为按钮添加活跃状态
+                        navButtons.forEach(id => {
+                            const navBtn = document.getElementById(id);
+                            if (navBtn) {
+                                navBtn.classList.remove('text-accent');
+                                navBtn.classList.add('text-light');
+                            }
+                        });
+                        btn.classList.remove('text-light');
+                        btn.classList.add('text-accent');
+                    });
+                }
+            });
+
+            // 响应式处理
+            window.addEventListener('resize', function () {
+                mapChart.resize();
+            });
+        }
+
+        // 页面加载完成后初始化
+        window.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+
+</html>
