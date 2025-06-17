@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>西电东送工程 - 地图可视化</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/map/js/china.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#FFCC00',
+                        secondary: '#3399FF',
+                        accent: '#FF6600',
+                        dark: '#1A1A1A',
+                        light: '#E6E6E6'
+                    },
+                    fontFamily: {
+                        sans: ['Arial', 'sans-serif'],
+                        display: ['Arial Black', 'sans-serif']
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 0 0 15px rgba(255, 204, 0, 0.5);
+            }
+            .text-shadow-lg {
+                text-shadow: 0 0 20px rgba(255, 204, 0, 0.7);
+            }
+            .glow {
+                filter: drop-shadow(0 0 8px rgba(255, 204, 0, 0.6));
+            }
+            .animate-pulse-slow {
+                animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
+            .animate-gradient {
+                background-size: 200% 200%;
+                animation: gradientMove 3s ease infinite;
+            }
+            .animate-float {
+                animation: float 6s ease-in-out infinite;
+            }
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+        }
+        
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+    </style>
+</head>
+<body class="bg-dark text-light overflow-hidden h-screen">
+    <!-- 主内容区 -->
+    <main class="h-full flex flex-col">
+        <div class="relative flex-1 overflow-hidden">
+            <!-- 地图容器 -->
+            <div id="mapContainer" class="w-full h-full"></div>
+            
+            <!-- 鼠标光晕效果 -->
+            <div class="glow absolute inset-0 pointer-events-none z-10" style="background: radial-gradient(circle at var(--x) var(--y), rgba(255, 204, 0, 0.15) 0%, transparent 30%);"></div>
+            
+            <!-- 图例 -->
+            <div class="absolute bottom-4 right-4 z-20 bg-dark/80 backdrop-blur rounded-lg border border-primary/30 p-4 shadow-lg">
+                <h3 class="text-primary font-bold mb-3 text-sm">图例</h3>
+                <div class="space-y-2 text-xs">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full bg-secondary mr-2 shadow-lg shadow-secondary/50"></div>
+                        <span class="text-light/90">水电站</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full bg-accent mr-2 shadow-lg shadow-accent/50"></div>
+                        <span class="text-light/90">核电站</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full bg-red-500 mr-2 shadow-lg shadow-red-500/50"></div>
+                        <span class="text-light/90">火电站</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-6 h-1 bg-gradient-to-r from-secondary to-blue-700 mr-2"></div>
+                        <span class="text-light/90">水电传输</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-6 h-1 bg-gradient-to-r from-primary to-accent mr-2"></div>
+                        <span class="text-light/90">核电传输</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-6 h-1 bg-gradient-to-r from-red-400 to-red-700 mr-2"></div>
+                        <span class="text-light/90">火电传输</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full bg-white mr-2 shadow-lg shadow-white/50"></div>
+                        <span class="text-light/90">受电区域</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 电站信息卡片 -->
+            <div id="stationInfo" class="fixed right-0 top-0 h-full w-80 bg-dark/90 backdrop-blur-md border-l border-primary/30 shadow-xl transform translate-x-full transition-transform duration-300 ease-in-out z-30 overflow-y-auto scrollbar-hide">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 id="infoTitle" class="text-2xl font-bold text-primary"></h2>
+                        <button id="closeInfo" class="text-light/70 hover:text-light transition-colors">
+                            <i class="fa fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="bg-dark/50 rounded-lg p-4 border border-primary/20">
+                            <h3 class="text-sm font-semibold text-light/70 mb-1">位置</h3>
+                            <p id="infoLocation" class="text-light"></p>
+                        </div>
+                        
+                        <div class="bg-dark/50 rounded-lg p-4 border border-primary/20">
+                            <h3 class="text-sm font-semibold text-light/70 mb-1">类型</h3>
+                            <p id="infoType" class="text-light"></p>
+                        </div>
+                        
+                        <div class="bg-dark/50 rounded-lg p-4 border border-primary/20">
+                            <h3 class="text-sm font-semibold text-light/70 mb-1">详细介绍</h3>
+                            <p id="infoDetails" class="text-light/90 text-sm leading-relaxed"></p>
+                        </div>
+                        
+                        <div class="bg-dark/50 rounded-lg p-4 border border-primary/20">
+                            <h3 class="text-sm font-semibold text-light/70 mb-1">传输方向</h3>
+                            <div id="infoTransmissions" class="space-y-2 text-sm"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 定义电站数据 - 重点突出西部电站
+        const powerStations = [
+            // 西部水电站 - 重点突出
+            { 
+                name: '三峡水电站', 
+                value: [111.00, 30.80, 100], 
+                type: 'hydro',
+                location: '湖北省宜昌市',
+                details: '世界上规模最大的水电站，总装机容量2250万千瓦。三峡水电站是中国长江三峡水利枢纽工程的重要组成部分，不仅为华东、华中和广东地区输送大量电力，还在防洪、航运等方面发挥了巨大的综合效益。'
+            },
+            { 
+                name: '溪洛渡水电站', 
+                value: [103.60, 28.30, 95], 
+                type: 'hydro',
+                location: '川滇交界',
+                details: '金沙江下游巨型水电站，装机1386万千瓦。溪洛渡水电站以发电为主，兼有防洪、拦沙和改善下游航运条件等综合效益，是西电东送的骨干电源之一。'
+            },
+            { 
+                name: '向家坝水电站', 
+                value: [104.50, 28.60, 90], 
+                type: 'hydro',
+                location: '川滇交界',
+                details: '金沙江水电基地最后一级电站，装机640万千瓦。向家坝水电站是金沙江水电基地25座水电站中唯一兼顾灌溉功能的超级大坝，不仅能发电，还能改善当地的农业灌溉条件。'
+            },
+            { 
+                name: '龙羊峡水电站', 
+                value: [100.60, 36.20, 85], 
+                type: 'hydro',
+                location: '青海共和县',
+                details: '黄河上游第一座大型梯级电站，装机128万千瓦。龙羊峡水电站是黄河上游龙羊峡至青铜峡河段规划的13座大型梯级电站的第一级，被誉为"黄河龙头电站"。'
+            },
+            { 
+                name: '李家峡水电站', 
+                value: [101.40, 36.00, 80], 
+                type: 'hydro',
+                location: '青海尖扎县',
+                details: '黄河上游梯级电站，装机200万千瓦。李家峡水电站是中国首次采用双排机布置的水电站，也是西北电网的骨干电源之一，对改善西北电网的电源结构和供电质量具有重要作用。'
+            },
+            { 
+                name: '糯扎渡水电站', 
+                value: [101.20, 22.70, 85], 
+                type: 'hydro',
+                location: '云南普洱',
+                details: '澜沧江流域最大水电站，装机585万千瓦。糯扎渡水电站是实施"西电东送"及"云电外送"战略的骨干工程，对促进云南经济社会发展和能源结构调整具有重要意义。'
+            },
+            { 
+                name: '小湾水电站', 
+                value: [100.10, 24.60, 80], 
+                type: 'hydro',
+                location: '云南大理',
+                details: '世界最高双曲拱坝电站，装机420万千瓦。小湾水电站是澜沧江中下游河段规划建设的第二座梯级电站，大坝高292米，是世界上已建成的最高双曲拱坝。'
+            },
+            
+            // 核电站 - 主要在东部
+            { 
+                name: '秦山核电站', 
+                value: [120.90, 30.40, 75], 
+                type: 'nuclear',
+                location: '浙江海盐',
+                details: '中国首座自主设计核电站，装机656.4万千瓦。秦山核电站是中国自行设计、建造和运营管理的第一座30万千瓦压水堆核电站，标志着中国核工业的发展上了一个新台阶。'
+            },
+            { 
+                name: '大亚湾核电站', 
+                value: [114.60, 22.60, 80], 
+                type: 'nuclear',
+                location: '广东深圳',
+                details: '大陆首座商用核电站，装机180万千瓦。大亚湾核电站是中国大陆第一座大型商用核电站，也是中国大陆首座使用国外技术和资金建设的核电站，为广东地区的经济发展提供了稳定的电力保障。'
+            },
+            
+            // 西部火电站
+            { 
+                name: '托克托电厂', 
+                value: [111.00, 40.30, 85], 
+                type: 'thermal',
+                location: '内蒙古呼和浩特',
+                details: '世界最大在役火电厂，装机672万千瓦。托克托电厂是国家"西部大开发"和"西电东送"战略的重点工程，也是国家"十五"期间重点建设的特大型火力发电企业。'
+            },
+            { 
+                name: '阳城电厂', 
+                value: [112.40, 35.60, 80], 
+                type: 'thermal',
+                location: '山西晋城',
+                details: '世界最大无烟煤电站，装机210万千瓦。阳城电厂是中国第一个采用"以大代小"方式建设的坑口电站，也是中国第一个实现"西电东送"的火力发电企业，主要向江苏、浙江等地输送电力。'
+            }
+        ];
+
+        // 定义受电区域
+        const receivingAreas = [
+            { name: '华北和山东', value: [117.00, 37.50, 90] },
+            { name: '华中和华东', value: [118.00, 31.00, 95] },
+            { name: '广东', value: [113.50, 23.00, 100] }
+        ];
+
+        // 定义通道连接关系
+        const transmissionChannels = [
+            // 水电通道
+            { source: '三峡水电站', target: '华中和华东', type: 'hydro' },
+            { source: '三峡水电站', target: '广东', type: 'hydro' },
+            { source: '溪洛渡水电站', target: '华中和华东', type: 'hydro' },
+            { source: '溪洛渡水电站', target: '广东', type: 'hydro' },
+            { source: '向家坝水电站', target: '华中和华东', type: 'hydro' },
+            { source: '向家坝水电站', target: '广东', type: 'hydro' },
+            { source: '龙羊峡水电站', target: '华北和山东', type: 'hydro' },
+            { source: '李家峡水电站', target: '华北和山东', type: 'hydro' },
+            { source: '糯扎渡水电站', target: '广东', type: 'hydro' },
+            { source: '小湾水电站', target: '广东', type: 'hydro' },
+            
+            // 核电通道
+            { source: '秦山核电站', target: '华中和华东', type: 'nuclear' },
+            { source: '大亚湾核电站', target: '广东', type: 'nuclear' },
+            
+            // 火电通道
+            { source: '托克托电厂', target: '华北和山东', type: 'thermal' },
+            { source: '阳城电厂', target: '华中和华东', type: 'thermal' }
+        ];
+
+        // 创建传输链路效果
+        const createLinkEffect = (color) => {
+            return {
+                color: {
+                    type: 'linear',
+                    x: 0, y: 0, x2: 1, y2: 0,
+                    colorStops: [
+                        { offset: 0, color: 'rgba(0, 0, 0, 0)' },
+                        { offset: 0.5, color: color },
+                        { offset: 1, color: 'rgba(0, 0, 0, 0)' }
+                    ],
+                    global: false
+                },
+                width: 2,
+                curveness: 0.2,
+                effect: {
+                    show: true,
+                    period: 6,
+                    trailWidth: 3,
+                    trailLength: 0.2,
+                    trailOpacity: 1,
+                    trailColor: color,
+                    symbol: 'circle',
+                    symbolSize: 3
+                }
+            };
+        };
+
+        // 初始化 ECharts 实例
+        const chart = echarts.init(document.getElementById('mapContainer'));
+
+        // 配置地图选项
+        chart.setOption({
+            backgroundColor: 'transparent',
+            geo: {
+                map: 'china',
+                roam: true,
+                zoom: 1.1,
+                center: [105, 35], // 调整中心位置，更关注西部
+                label: {
+                    show: true,
+                    color: '#FFCC00',
+                    fontSize: 10,
+                    fontFamily: 'Arial, sans-serif',
+                    emphasis: {
+                        color: '#FFCC00',
+                        textShadowColor: '#FFCC00',
+                        textShadowBlur: 10
+                    }
+                },
+                itemStyle: {
+                    normal: {
+                        areaColor: 'rgba(32, 32, 32, 0.7)',
+                        borderColor: 'rgba(255, 204, 0, 0.3)',
+                        borderWidth: 0.8
+                    },
+                    emphasis: {
+                        areaColor: 'rgba(32, 32, 32, 0.9)'
+                    }
+                }
+            },
+            series: [
+                // 基础地图层
+                {
+                    type: 'map',
+                    map: 'china',
+                    geoIndex: 0,
+                    label: {
+                        show: false
+                    },
+                    itemStyle: {
+                        normal: {
+                            areaColor: 'rgba(20, 20, 20, 0.8)',
+                            borderColor: 'rgba(255, 204, 0, 0.2)',
+                            borderWidth: 0.5
+                        },
+                        emphasis: {
+                            areaColor: 'rgba(30, 30, 30, 0.9)'
+                        }
+                    },
+                    zlevel: 0
+                },
+                
+                // 水电站层 - 突出显示
+                {
+                    type: 'effectScatter',
+                    coordinateSystem: 'geo',
+                    data: powerStations.filter(station => station.type === 'hydro'),
+                    symbolSize: function (val) {
+                        return val[2] / 2.5;
+                    },
+                    showEffectOn: 'render',
+                    rippleEffect: {
+                        brushType: 'stroke',
+                        scale: 10,
+                        period: 4
+                    },
+                    hoverAnimation: true,
+                    itemStyle: {
+                        color: '#3399FF',
+                        shadowBlur: 25,
+                        shadowColor: '#3399FF'
+                    },
+                    zlevel: 3,
+                    name: 'hydro'
+                },
+                
+                // 核电站层
+                {
+                    type: 'effectScatter',
+                    coordinateSystem: 'geo',
+                    data: powerStations.filter(station => station.type === 'nuclear'),
+                    symbolSize: function (val) {
+                        return val[2] / 3;
+                    },
+                    showEffectOn: 'render',
+                    rippleEffect: {
+                        brushType: 'stroke',
+                        scale: 8,
+                        period: 3
+                    },
+                    hoverAnimation: true,
+                    itemStyle: {
+                        color: '#FF6600',
+                        shadowBlur: 20,
+                        shadowColor: '#FF6600'
+                    },
+                    zlevel: 3,
+                    name: 'nuclear'
+                },
+                
+                // 火电站层
+                {
+                    type: 'effectScatter',
+                    coordinateSystem: 'geo',
+                    data: powerStations.filter(station => station.type === 'thermal'),
+                    symbolSize: function (val) {
+                        return val[2] / 3;
+                    },
+                    showEffectOn: 'render',
+                    rippleEffect: {
+                        brushType: 'stroke',
+                        scale: 8,
+                        period: 3
+                    },
+                    hoverAnimation: true,
+                    itemStyle: {
+                        color: '#FF3300',
+                        shadowBlur: 20,
+                        shadowColor: '#FF3300'
+                    },
+                    zlevel: 3,
+                    name: 'thermal'
+                },
+                
+                // 受电区域层
+                {
+                    type: 'scatter',
+                    coordinateSystem: 'geo',
+                    data: receivingAreas,
+                    symbolSize: function (val) {
+                        return val[2] / 2;
+                    },
+                    itemStyle: {
+                        color: 'rgba(255, 255, 255, 0.8)',
+                        shadowBlur: 20,
+                        shadowColor: 'rgba(255, 255, 255, 0.6)'
+                    },
+                    zlevel: 2
+                },
+                
+                // 传输链路层
+                {
+                    type: 'lines',
+                    coordinateSystem: 'geo',
+                    effect: {
+                        show: true,
+                        period: 6,
+                        trailWidth: 3,
+                        trailLength: 0.2,
+                        trailOpacity: 1
+                    },
+                    lineStyle: {
+                        opacity: 0.8,
+                        curveness: 0.2
+                    },
+                    data: transmissionChannels.map(channel => {
+                        const source = powerStations.find(station => station.name === channel.source);
+                        const target = receivingAreas.find(area => area.name === channel.target);
+                        
+                        let color;
+                        if (channel.type === 'hydro') color = 'rgba(51, 153, 255, 0.7)';
+                        else if (channel.type === 'nuclear') color = 'rgba(255, 204, 0, 0.7)';
+                        else color = 'rgba(255, 102, 102, 0.7)';
+                        
+                        return {
+                            coords: [
+                                [source.value[0], source.value[1]],
+                                [target.value[0], target.value[1]]
+                            ],
+                            lineStyle: {
+                                color: color,
+                                width: 1.5,
+                                curveness: 0.2
+                            },
+                            effect: {
+                                show: true,
+                                period: 6,
+                                trailWidth: 2,
+                                trailLength: 0.2,
+                                trailOpacity: 1,
+                                trailColor: color.replace('0.7', '1'),
+                                symbol: 'circle',
+                                symbolSize: 2
+                            }
+                        };
+                    }),
+                    zlevel: 1
+                }
+            ]
+        });
+
+        // 添加鼠标移动时的光晕效果
+        document.getElementById('mapContainer').addEventListener('mousemove', function (e) {
+            const rect = this.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const glow = document.querySelector('.glow');
+            glow.style.setProperty('--x', `${x}px`);
+            glow.style.setProperty('--y', `${y}px`);
+        });
+
+        // 窗口大小变化时重绘图表
+        window.addEventListener('resize', function () {
+            chart.resize();
+        });
+        
+        // 点击电站显示信息
+        chart.on('click', function (params) {
+            if (params.seriesName === 'hydro' || params.seriesName === 'nuclear' || params.seriesName === 'thermal') {
+                const station = powerStations.find(s => s.name === params.name);
+                if (station) {
+                    showStationInfo(station);
+                }
+            }
+        });
+        
+        // 显示电站信息
+        function showStationInfo(station) {
+            document.getElementById('infoTitle').textContent = station.name;
+            document.getElementById('infoLocation').textContent = station.location;
+            
+            let typeText = '';
+            if (station.type === 'hydro') typeText = '水电站';
+            else if (station.type === 'nuclear') typeText = '核电站';
+            else typeText = '火电站';
+            
+            document.getElementById('infoType').textContent = typeText;
+            document.getElementById('infoDetails').textContent = station.details;
+            
+            // 显示传输方向
+            const transmissions = transmissionChannels.filter(channel => channel.source === station.name);
+            const transmissionsContainer = document.getElementById('infoTransmissions');
+            transmissionsContainer.innerHTML = '';
+            
+            if (transmissions.length > 0) {
+                transmissions.forEach(channel => {
+                    let typeColor = '';
+                    if (channel.type === 'hydro') typeColor = 'text-blue-400';
+                    else if (channel.type === 'nuclear') typeColor = 'text-yellow-400';
+                    else typeColor = 'text-red-400';
+                    
+                    const transmissionEl = document.createElement('div');
+                    transmissionEl.className = `flex items-center ${typeColor}`;
+                    transmissionEl.innerHTML = `
+                        <i class="fa fa-arrow-right mr-2"></i>
+                        <span>${channel.target}</span>
+                    `;
+                    transmissionsContainer.appendChild(transmissionEl);
+                });
+            } else {
+                transmissionsContainer.innerHTML = '<span class="text-light/60">暂无传输方向信息</span>';
+            }
+            
+            // 显示信息卡片
+            const infoCard = document.getElementById('stationInfo');
+            infoCard.classList.remove('translate-x-full');
+        }
+        
+        // 关闭信息卡片
+        document.getElementById('closeInfo').addEventListener('click', function () {
+            const infoCard = document.getElementById('stationInfo');
+            infoCard.classList.add('translate-x-full');
+        });
+    </script>
+</body>
+</html>    
