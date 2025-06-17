@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>中国对全球贸易示意图</title>
+    <meta charset="UTF-8">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #101724;
+        }
+
+        #echartsMap {
+            width: 100%;
+            height: 100vh;
+        }
+
+        .map-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(16, 23, 36, 0.8);
+            border-radius: 8px;
+            padding: 15px;
+            color: #fff; /* 文字改为白色 */
+            font-family: Arial, sans-serif;
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.3);
+            z-index: 100;
+        }
+        
+        .title {
+            text-align: center;
+            color: #00f2fe;
+            text-shadow: 0 0 10px #00f2fe;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00f2fe;
+            font-size: 20px;
+            font-family: Arial, sans-serif;
+            z-index: 50;
+        }
+        
+        /* 新增贸易详情图表样式 */
+        #tradeDetailChart {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            height: 200px;
+            background-color: rgba(16, 23, 36, 0.8);
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.3);
+            z-index: 100;
+            display: none;
+        }
+        
+        .chart-title {
+            color: #fff; /* 文字改为白色 */
+            text-align: center;
+            padding: 5px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="title">中国对全球贸易可视化示意图</div>
+    <div class="map-wrapper">
+        <div id="echartsMap"></div>
+        <div class="loading">加载中...</div>
+    </div>
+    
+    <div class="info-panel">
+        <h3>贸易数据说明</h3>
+        <p>• 红色表示中国</p>
+        <p>• 蓝色表示与中国有主要贸易往来的国家</p>
+        <p>• 超淡蓝色表示其他国家</p>
+        <p>• 线条粗细表示贸易往来强度</p>
+    </div>
+    
+    <!-- 贸易详情图表容器 -->
+    <div id="tradeDetailChart">
+        <div class="chart-title">贸易详情</div>
+        <div id="detailChart" style="width: 100%; height: 170px;"></div>
+    </div>
+
+    <!-- Include ECharts and World Map -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/map/js/world.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/lib/chart/line.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/lib/component/tooltip.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/lib/component/title.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/lib/component/toolbox.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/lib/component/visualMap.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/lib/chart/bar.js"></script>
+
+    <script>
+        // 确保ECharts加载完成后再执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化世界地图 ECharts 实例
+            const chart = echarts.init(document.getElementById('echartsMap'));
+            
+            // 初始化贸易详情 ECharts 实例
+            const detailChart = echarts.init(document.getElementById('detailChart'));
+            
+            // 定义与中国贸易频繁的国家列表及贸易数据（单位：十亿美元）
+            const tradeData = {
+                'China': { name: '中国', value: 0, import: 0, export: 0, coord: [104.195397, 35.86166] },
+                'United States': { name: '美国', value: 690, import: 150, export: 540, coord: [-95.712891, 37.09024] },
+                'Japan': { name: '日本', value: 370, import: 176, export: 194, coord: [138.252924, 36.204824] },
+                'South Korea': { name: '韩国', value: 362, import: 201, export: 161, coord: [127.968813, 35.907757] },
+                'Germany': { name: '德国', value: 245, import: 134, export: 111, coord: [10.451526, 51.165691] },
+                'Russia': { name: '俄罗斯', value: 146, import: 76, export: 70, coord: [37.617298, 55.755826] },
+                'Australia': { name: '澳大利亚', value: 231, import: 164, export: 67, coord: [133.775136, -25.274398] },
+                'Malaysia': { name: '马来西亚', value: 174, import: 94, export: 80, coord: [101.975766, 4.210484] },
+                'Thailand': { name: '泰国', value: 131, import: 67, export: 64, coord: [100.992541, 15.870032] },
+                'Singapore': { name: '新加坡', value: 106, import: 55, export: 51, coord: [103.819836, 1.352083] },
+                'Indonesia': { name: '印度尼西亚', value: 124, import: 52, export: 72, coord: [113.921327, -0.789275] },
+                'Vietnam': { name: '越南', value: 230, import: 146, export: 84, coord: [108.277199, 14.058324] },
+                'India': { name: '印度', value: 125, import: 21, export: 104, coord: [78.96288, 20.593684] },
+                'United Kingdom': { name: '英国', value: 90, import: 30, export: 60, coord: [-3.435973, 55.378051] },
+                'France': { name: '法国', value: 70, import: 35, export: 35, coord: [2.213749, 46.227638] },
+                'Italy': { name: '意大利', value: 58, import: 28, export: 30, coord: [12.56738, 41.87194] },
+                'Canada': { name: '加拿大', value: 77, import: 31, export: 46, coord: [-106.346771, 56.130366] },
+                'Brazil': { name: '巴西', value: 150, import: 98, export: 52, coord: [-51.92528, -14.235004] },
+                'Saudi Arabia': { name: '沙特阿拉伯', value: 106, import: 87, export: 19, coord: [45.079162, 23.885942] },
+                'United Arab Emirates': { name: '阿联酋', value: 70, import: 25, export: 45, coord: [53.847818, 23.424076] },
+                'New Zealand': { name: '新西兰', value: 25, import: 18, export: 7, coord: [174.885971, -40.900557] },
+                'Philippines': { name: '菲律宾', value: 66, import: 31, export: 35, coord: [121.774017, 12.879721] },
+                'Netherlands': { name: '荷兰', value: 130, import: 25, export: 105, coord: [5.291266, 52.132633] },
+                'Spain': { name: '西班牙', value: 30, import: 12, export: 18, coord: [-3.74922, 40.463667] },
+                'Belgium': { name: '比利时', value: 40, import: 15, export: 25, coord: [4.469936, 50.503887] },
+                'Turkey': { name: '土耳其', value: 34, import: 10, export: 24, coord: [35.243322, 38.963745] },
+                'Mexico': { name: '墨西哥', value: 61, import: 19, export: 42, coord: [-102.552784, 23.634501] }
+            };
+
+            // 提取贸易数据并格式化为 ECharts 所需格式
+            const mapData = [];
+            const lineData = [];
+            const pointData = [];
+            
+            // 添加中国作为起点
+            pointData.push({
+                name: '中国',
+                value: [tradeData.China.coord[0], tradeData.China.coord[1], 100]
+            });
+            
+            for (const country in tradeData) {
+                if (country !== 'China') {
+                    mapData.push({
+                        name: country,
+                        value: tradeData[country].value
+                    });
+                    
+                    lineData.push({
+                        fromName: '中国',
+                        toName: tradeData[country].name,
+                        coords: [
+                            tradeData.China.coord,
+                            tradeData[country].coord
+                        ],
+                        value: tradeData[country].value
+                    });
+                    
+                    pointData.push({
+                        name: tradeData[country].name,
+                        value: [
+                            tradeData[country].coord[0], 
+                            tradeData[country].coord[1],
+                            tradeData[country].value
+                        ]
+                    });
+                }
+            }
+
+            // 定义炫酷的文本样式 - 底图交互文字改为黑色
+            const coolTextStyle = {
+                color: '#000000', // 改为黑色文字
+                textShadowColor: '#00f2fe',
+                textShadowBlur: 10,
+                fontFamily: 'Arial, sans-serif',
+                fontSize: 12,
+                fontWeight: 'bold'
+            };
+
+            // 获取所有国家名称
+            const allCountries = echarts.getMap('world').geoJson.features.map(feature => feature.properties.name);
+            
+            // 非贸易伙伴国家数据
+            const otherCountries = allCountries.filter(country => !tradeData[country]);
+            const otherCountryData = otherCountries.map(country => ({
+                name: country,
+                value: 0
+            }));
+
+            // 配置地图选项
+            const option = {
+                backgroundColor: '#101724',
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        if (params.name === 'China') {
+                            return '中国\n' + 
+                                   '贸易总额: 全球贸易枢纽';
+                        }
+                        
+                        const countryData = tradeData[params.data.name];
+                        if (countryData) {
+                            return countryData.name + '\n' + 
+                                   '贸易总额: ' + countryData.value + ' 十亿美元\n' +
+                                   '进口: ' + countryData.import + ' 十亿美元\n' +
+                                   '出口: ' + countryData.export + ' 十亿美元';
+                        } else {
+                            return params.name + '\n' + 
+                                   '贸易总额: 未记录或非主要贸易伙伴';
+                        }
+                    },
+                    textStyle: coolTextStyle
+                },
+                toolbox: {
+                    show: true,
+                    orient: 'vertical',
+                    right: 10,
+                    top: 'center',
+                    feature: {
+                        dataView: { show: true, readOnly: false },
+                        restore: { show: true },
+                        saveAsImage: { show: true }
+                    }
+                },
+                geo: {
+                    map: 'world',
+                    roam: true,
+                    zoom: 1.2,
+                    center: [104.195397, 35.86166], // 以中国为中心
+                    itemStyle: {
+                        normal: {
+                            areaColor: '#0a122a', // 基础颜色
+                            borderColor: '#3498db',
+                            borderWidth: 0.5,
+                            shadowColor: 'rgba(0, 242, 254, 0.5)',
+                            shadowBlur: 10
+                        },
+                        emphasis: {
+                            areaColor: '#0e1a3c',
+                            borderWidth: 2,
+                            borderColor: '#00f2fe'
+                        }
+                    },
+                    // 设置标签样式为炫酷效果，并只显示重要国家
+                    label: {
+                        show: true,
+                        formatter: function(params) {
+                            // 只显示重要国家的中文名称
+                            if (tradeData[params.name]) {
+                                return tradeData[params.name].name;
+                            }
+                            return '';
+                        },
+                        ...coolTextStyle
+                    },
+                    // 使用自定义颜色映射
+                    roam: true,
+                    // 特殊处理中国和其他国家的颜色
+                    regions: [
+                        {
+                            name: 'China',
+                            itemStyle: {
+                                normal: {
+                                    areaColor: '#e63946', // 中国独特的红色
+                                    shadowColor: 'rgba(230, 57, 70, 0.5)',
+                                    shadowBlur: 15
+                                },
+                                emphasis: {
+                                    areaColor: '#ef233c',
+                                    borderColor: '#00f2fe'
+                                }
+                            }
+                        },
+                        // 其他非主要贸易伙伴国家 - 进一步淡化颜色
+                        ...otherCountryData.map(country => ({
+                            name: country.name,
+                            itemStyle: {
+                                normal: {
+                                    areaColor: '#e6f2f2', // 超淡蓝色表示非主要贸易伙伴
+                                    borderColor: '#a8dadc',
+                                    borderWidth: 0.3,
+                                    opacity: 0.3 // 降低不透明度
+                                },
+                                emphasis: {
+                                    areaColor: '#a8dadc',
+                                    borderWidth: 1,
+                                    opacity: 0.7
+                                }
+                            }
+                        }))
+                    ],
+                    data: mapData
+                },
+                series: [
+                    {
+                        type: 'lines',
+                        zlevel: 2,
+                        effect: {
+                            show: true,
+                            period: 6,
+                            trailWidth: 3,
+                            trailLength: 0.7,
+                            // 更换线条颜色为蓝绿色系，提高对比度
+                            trailColor: '#2a9d8f', 
+                            trailOpacity: 1,
+                            symbol: 'circle',
+                            symbolSize: 5
+                        },
+                        lineStyle: {
+                            normal: {
+                                width: 1,
+                                curveness: 0.2,
+                                color: {
+                                    type: 'linear',
+                                    x: 0,
+                                    y: 0,
+                                    x2: 1,
+                                    y2: 0,
+                                    colorStops: [{
+                                        offset: 0, color: '#264653' // 深蓝绿色
+                                    }, {
+                                        offset: 1, color: '#2a9d8f' // 浅蓝绿色
+                                    }]
+                                },
+                                opacity: 0.8
+                            }
+                        },
+                        data: lineData
+                    },
+                    {
+                        type: 'effectScatter',
+                        coordinateSystem: 'geo',
+                        zlevel: 3,
+                        rippleEffect: {
+                            period: 4,
+                            scale: 5,
+                            brushType: 'stroke'
+                        },
+                        symbolSize: function(val) {
+                            return Math.sqrt(val[2]) / 5 + 5; // 标记大小与贸易额成正比
+                        },
+                        itemStyle: {
+                            normal: {
+                                color: '#00f2fe',
+                                shadowBlur: 15,
+                                shadowColor: '#00f2fe'
+                            }
+                        },
+                        data: pointData
+                    },
+                    {
+                        type: 'map',
+                        map: 'world',
+                        geoIndex: 0,
+                        aspectScale: 0.75,
+                        label: {
+                            show: false
+                        },
+                        itemStyle: {
+                            normal: {
+                                areaColor: {
+                                    type: 'radial',
+                                    x: 0.5,
+                                    y: 0.5,
+                                    r: 0.8,
+                                    colorStops: [{
+                                        offset: 0, color: '#0a122a'
+                                    }, {
+                                        offset: 1, color: '#1e3a8a'
+                                    }]
+                                },
+                                borderColor: '#111'
+                            },
+                            emphasis: {
+                                areaColor: '#2563eb'
+                            }
+                        },
+                        data: mapData
+                    }
+                ],
+                visualMap: {
+                    min: 0,
+                    max: 700,
+                    left: 'left',
+                    bottom: '10%',
+                    text: ['高贸易额', '低贸易额'],
+                    calculable: true,
+                    inRange: {
+                        color: ['#0a122a', '#1e3a8a', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe']
+                    },
+                    textStyle: coolTextStyle
+                }
+            };
+
+            // 设置图表选项
+            chart.setOption(option);
+            
+            // 隐藏加载提示
+            setTimeout(() => {
+                document.querySelector('.loading').style.display = 'none';
+            }, 1000);
+
+            // 窗口大小改变时重置图表大小
+            window.addEventListener('resize', function() {
+                chart.resize();
+                detailChart.resize();
+            });
+            
+            // 配置贸易详情图表 - 明确标明进出口
+            const detailChartOption = {
+                backgroundColor: 'transparent',
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    },
+                    textStyle: coolTextStyle,
+                    formatter: function(params) {
+                        const data = params[0];
+                        return `<div style="color: #00f2fe;">${data.name}</div>
+                                <div>贸易额: ${data.value} 十亿美元</div>`;
+                    }
+                },
+                grid: {
+                    left: '10%',
+                    right: '10%',
+                    bottom: '10%',
+                    top: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: ['进口', '出口'], // 简化为仅显示"进口"和"出口"
+                    axisLine: {
+                        lineStyle: {
+                            color: '#00f2fe'
+                        }
+                    },
+                    axisTick: {
+                        show: false
+                    },
+                    axisLabel: {
+                        color: '#ffffff', // 保持白色
+                        rotate: 0, // 取消旋转
+                        interval: 0
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '十亿美元',
+                    nameTextStyle: {
+                        color: '#ffffff', // 保持白色
+                        padding: [0, 0, 0, 10]
+                    },
+                    axisLine: {
+                        show: false
+                    },
+                    axisTick: {
+                        show: false
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: '#1e3a8a'
+                        }
+                    },
+                    axisLabel: {
+                        color: '#ffffff' // 保持白色
+                    }
+                },
+                series: [{
+                    name: '贸易额',
+                    type: 'bar',
+                    data: [0, 0],
+                    itemStyle: {
+                        color: {
+                            type: 'linear',
+                            x: 0,
+                            y: 0,
+                            x2: 0,
+                            y2: 1,
+                            colorStops: [{
+                                offset: 0, color: '#4cc9f0' // 浅蓝色 - 进口
+                            }, {
+                                offset: 1, color: '#4361ee' // 深蓝色 - 出口
+                            }]
+                        }
+                    },
+                    label: {
+                        show: true,
+                        position: 'top',
+                        color: '#ffffff', // 保持白色
+                        formatter: '{c} 十亿美元'
+                    }
+                }]
+            };
+            
+            // 设置贸易详情图表选项
+            detailChart.setOption(detailChartOption);
+            
+            // 点击事件处理 - 显示贸易详情
+            chart.on('click', function(params) {
+                const country = params.name;
+                const countryData = tradeData[country];
+                
+                // 如果点击的是主要贸易伙伴国家
+                if (countryData && country !== 'China') {
+                    // 更新贸易详情图表数据
+                    detailChartOption.series[0].data = [countryData.import, countryData.export];
+                    detailChart.setOption(detailChartOption);
+                    
+                    // 更新图表标题
+                    document.querySelector('.chart-title').textContent = `${countryData.name} 贸易详情`;
+                    
+                    // 显示贸易详情图表
+                    document.getElementById('tradeDetailChart').style.display = 'block';
+                }
+            });
+            
+            // 点击空白处隐藏贸易详情图表
+            chart.on('click', function(params) {
+                // 如果点击的是背景
+                if (params.componentType === 'geo') {
+                    document.getElementById('tradeDetailChart').style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+    
