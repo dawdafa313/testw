@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>东数西算工程 - 中国算力枢纽地图</title>
+    <meta charset="UTF-8">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+            overflow: hidden;
+        }
+
+        #mapContainer {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+        }
+
+        .glow {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at var(--x) var(--y), rgba(0, 242, 254, 0.2) 0%, transparent 30%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .title-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+            text-align: center;
+        }
+
+        .title {
+            font-family: 'Arial Black', sans-serif;
+            font-size: 28px;
+            background: linear-gradient(90deg, #00f2fe, #4facfe, #00f2fe);
+            background-size: 200% 200%;
+            animation: gradientMove 3s ease infinite;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 15px rgba(0, 242, 254, 0.5);
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            color: #8ed1fc;
+            text-shadow: 0 0 5px rgba(0, 242, 254, 0.3);
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(16, 23, 36, 0.8);
+            padding: 10px 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(0, 242, 254, 0.2);
+            z-index: 2;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .legend-line {
+            width: 20px;
+            height: 2px;
+            margin-right: 8px;
+        }
+
+        .legend-text {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            color: #a8c6ff;
+        }
+
+        .hub-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(16, 23, 36, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(0, 242, 254, 0.2);
+            width: 250px;
+            z-index: 2;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .hub-info.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hub-name {
+            font-family: 'Arial Black', sans-serif;
+            font-size: 16px;
+            background: linear-gradient(90deg, #00f2fe, #4facfe);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .hub-details {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            color: #a8c6ff;
+            line-height: 1.5;
+        }
+
+        @keyframes gradientMove {
+            0% {background-position: 0% 50%}
+            50% {background-position: 100% 50%}
+            100% {background-position: 0% 50%}
+        }
+
+        @keyframes pulse {
+            0% {transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 242, 254, 0.7);}
+            70% {transform: scale(1); box-shadow: 0 0 0 10px rgba(0, 242, 254, 0);}
+            100% {transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 242, 254, 0);}
+        }
+
+        @keyframes flow {
+            0% {background-position: 0% 50%}
+            100% {background-position: 200% 50%}
+        }
+    </style>
+</head>
+<body>
+    <div id="mapContainer"></div>
+    <div class="glow"></div>
+    
+    <div class="title-container">
+        <div class="title">东数西算工程</div>
+        <div class="subtitle">国家算力枢纽节点布局与互联</div>
+    </div>
+    
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-dot" style="background: #00f2fe; box-shadow: 0 0 10px #00f2fe;"></div>
+            <div class="legend-text">算力枢纽节点</div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background: #ff00ff; box-shadow: 0 0 10px #ff00ff;"></div>
+            <div class="legend-text">数据中心集群</div>
+        </div>
+        <div class="legend-item">
+            <div class="legend-line" style="background: linear-gradient(90deg, #00f2fe, #4facfe);"></div>
+            <div class="legend-text">数据传输链路</div>
+        </div>
+    </div>
+    
+    <div class="hub-info" id="hubInfo">
+        <div class="hub-name" id="hubName">算力枢纽节点</div>
+        <div class="hub-details" id="hubDetails">
+            东数西算工程，即东数西算国家工程，是通过构建数据中心、云计算、大数据一体化的新型算力网络体系，将东部算力需求有序引导到西部，优化数据中心建设布局，促进东西部协同联动。
+        </div>
+    </div>
+
+    <!-- 引入 ECharts 和中国地图 -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/map/js/china.js"></script>
+
+    <script>
+        // 初始化 ECharts 实例
+        const chart = echarts.init(document.getElementById('mapContainer'));
+        
+        // 定义算力枢纽节点
+        const hubs = [
+            {name: '京津冀枢纽', value: [116.46, 39.92, 100], code: 'bj', 
+             details: '京津冀枢纽依托张家口、怀来等城市，重点服务于京津冀地区的算力需求，推动京津冀区域数字经济协同发展。'},
+            {name: '长三角枢纽', value: [121.48, 31.22, 100], code: 'sh', 
+             details: '长三角枢纽以上海为核心，覆盖周边城市，重点服务长三角地区的人工智能、金融科技、工业互联网等领域的算力需求。'},
+            {name: '粤港澳大湾区枢纽', value: [113.27, 23.13, 100], code: 'gz', 
+             details: '粤港澳大湾区枢纽以广州、深圳为核心，重点服务于大湾区的科技创新、智能制造、跨境贸易等领域的算力需求。'},
+            {name: '成渝枢纽', value: [104.06, 30.57, 100], code: 'cd', 
+             details: '成渝枢纽以成都、重庆为双中心，重点服务于西南地区的数字经济、先进制造、智慧城市等领域的算力需求。'},
+            {name: '内蒙古枢纽', value: [111.65, 40.82, 90], code: 'nm', 
+             details: '内蒙古枢纽位于和林格尔新区，利用当地丰富的风能、太阳能等绿色能源，重点服务于对时延要求不高的后台加工、离线分析等算力需求。'},
+            {name: '贵州枢纽', value: [106.71, 26.57, 90], code: 'gz', 
+             details: '贵州枢纽以贵安新区为核心，依托当地凉爽气候和丰富能源，重点服务于数据存储、备份、离线分析等低时延要求的算力需求。'},
+            {name: '甘肃枢纽', value: [103.83, 36.07, 85], code: 'gs', 
+             details: '甘肃枢纽位于兰州新区，重点服务于西北地区的数据存储、数据加工、超算等算力需求，同时辐射中亚地区。'},
+            {name: '宁夏枢纽', value: [106.27, 38.48, 85], code: 'nx', 
+             details: '宁夏枢纽以中卫市为核心，依托当地绿色能源和地理优势，重点服务于全国范围的大型数据中心、云计算中心等算力需求。'}
+        ];
+        
+        // 定义数据中心集群（二级节点）
+        const clusters = [
+            {name: '张家口集群', value: [114.87, 40.82, 70], parent: '京津冀枢纽'},
+            {name: '芜湖集群', value: [118.38, 31.33, 70], parent: '长三角枢纽'},
+            {name: '韶关集群', value: [113.62, 24.84, 70], parent: '粤港澳大湾区枢纽'},
+            {name: '天府集群', value: [104.07, 30.57, 70], parent: '成渝枢纽'},
+            {name: '重庆集群', value: [106.55, 29.57, 70], parent: '成渝枢纽'},
+            {name: '和林格尔集群', value: [111.82, 40.48, 70], parent: '内蒙古枢纽'},
+            {name: '贵安集群', value: [106.62, 26.47, 70], parent: '贵州枢纽'},
+            {name: '庆阳集群', value: [107.63, 35.73, 70], parent: '甘肃枢纽'},
+            {name: '中卫集群', value: [105.18, 37.51, 70], parent: '宁夏枢纽'}
+        ];
+        
+        // 定义枢纽之间的连接关系
+        const links = [
+            {source: '京津冀枢纽', target: '内蒙古枢纽'},
+            {source: '京津冀枢纽', target: '宁夏枢纽'},
+            {source: '长三角枢纽', target: '成渝枢纽'},
+            {source: '长三角枢纽', target: '贵州枢纽'},
+            {source: '粤港澳大湾区枢纽', target: '成渝枢纽'},
+            {source: '粤港澳大湾区枢纽', target: '贵州枢纽'},
+            {source: '成渝枢纽', target: '甘肃枢纽'},
+            {source: '成渝枢纽', target: '宁夏枢纽'},
+            {source: '内蒙古枢纽', target: '宁夏枢纽'},
+            {source: '贵州枢纽', target: '宁夏枢纽'},
+            {source: '甘肃枢纽', target: '宁夏枢纽'},
+            {source: '京津冀枢纽', target: '长三角枢纽'},
+            {source: '长三角枢纽', target: '粤港澳大湾区枢纽'}
+        ];
+        
+        // 创建炫酷的连线效果
+        const createGlowingEffect = () => {
+            return {
+                color: {
+                    type: 'linear',
+                    x: 0, y: 0, x2: 1, y2: 0,
+                    colorStops: [
+                        {offset: 0, color: 'rgba(0, 242, 254, 0)'},
+                        {offset: 0.5, color: 'rgba(0, 242, 254, 0.8)'},
+                        {offset: 1, color: 'rgba(0, 242, 254, 0)'}
+                    ],
+                    global: false
+                },
+                width: 2,
+                curveness: 0.2,
+                effect: {
+                    show: true,
+                    period: 4,
+                    trailWidth: 3,
+                    trailLength: 0.2,
+                    trailOpacity: 1,
+                    trailColor: '#00f2fe',
+                    symbol: 'circle',
+                    symbolSize: 3
+                }
+            };
+        };
+        
+        // 配置地图选项
+        chart.setOption({
+            backgroundColor: 'transparent',
+            geo: {
+                map: 'china',
+                roam: true,
+                zoom: 1.2,
+                label: {
+                    show: true,
+                    color: '#8ed1fc',
+                    fontSize: 10,
+                    fontFamily: 'Arial, sans-serif',
+                    emphasis: {
+                        color: '#00f2fe',
+                        textShadowColor: '#00f2fe',
+                        textShadowBlur: 10
+                    }
+                },
+                itemStyle: {
+                    normal: {
+                        areaColor: 'rgba(25, 42, 86, 0.3)',
+                        borderColor: 'rgba(0, 242, 254, 0.4)',
+                        borderWidth: 1
+                    },
+                    emphasis: {
+                        areaColor: 'rgba(25, 42, 86, 0.5)'
+                    }
+                },
+                regions: [
+                    {
+                        name: '南海诸岛',
+                        itemStyle: {
+                            normal: {
+                                opacity: 0.2,
+                                areaColor: 'rgba(0, 242, 254, 0.1)',
+                                borderColor: 'rgba(0, 242, 254, 0.3)'
+                            },
+                            emphasis: {
+                                opacity: 0.3
+                            }
+                        }
+                    }
+                ]
+            },
+            series: [
+                // 基础地图层
+                {
+                    type: 'map',
+                    map: 'china',
+                    geoIndex: 0,
+                    roam: false,
+                    label: {
+                        show: false
+                    },
+                    itemStyle: {
+                        normal: {
+                            areaColor: 'rgba(16, 23, 36, 0.5)',
+                            borderColor: 'rgba(0, 242, 254, 0.2)',
+                            borderWidth: 0.8
+                        },
+                        emphasis: {
+                            areaColor: 'rgba(16, 23, 36, 0.7)'
+                        }
+                    }
+                },
+                // 枢纽节点层
+                {
+                    type: 'effectScatter',
+                    coordinateSystem: 'geo',
+                    data: hubs,
+                    symbolSize: function(val) {
+                        return val[2] / 3;
+                    },
+                    showEffectOn: 'render',
+                    rippleEffect: {
+                        brushType: 'stroke',
+                        scale: 10,
+                        period: 4
+                    },
+                    hoverAnimation: true,
+                    label: {
+                        show: true,
+                        formatter: function(params) {
+                            return params.data.name;
+                        },
+                        position: 'top',
+                        color: '#00f2fe',
+                        fontSize: 12,
+                        fontWeight: 'bold',
+                        backgroundColor: 'rgba(16, 23, 36, 0.7)',
+                        padding: [5, 8],
+                        borderRadius: 4,
+                        textBorderColor: '#00f2fe',
+                        textBorderWidth: 0.5,
+                        textShadowColor: '#00f2fe',
+                        textShadowBlur: 10
+                    },
+                    itemStyle: {
+                        color: '#00f2fe',
+                        shadowBlur: 20,
+                        shadowColor: '#00f2fe'
+                    },
+                    zlevel: 3
+                },
+                // 数据中心集群层
+                {
+                    type: 'scatter',
+                    coordinateSystem: 'geo',
+                    data: clusters,
+                    symbolSize: function(val) {
+                        return val[2] / 4;
+                    },
+                    label: {
+                        show: true,
+                        formatter: function(params) {
+                            return params.data.name;
+                        },
+                        position: 'right',
+                        color: '#ff00ff',
+                        fontSize: 10,
+                        backgroundColor: 'rgba(16, 23, 36, 0.7)',
+                        padding: [3, 5],
+                        borderRadius: 3
+                    },
+                    itemStyle: {
+                        color: '#ff00ff',
+                        shadowBlur: 15,
+                        shadowColor: '#ff00ff'
+                    },
+                    zlevel: 3
+                },
+                // 连接线层
+                {
+                    type: 'lines',
+                    coordinateSystem: 'geo',
+                    effect: {
+                        show: true,
+                        period: 6,
+                        trailWidth: 3,
+                        trailLength: 0.1,
+                        trailOpacity: 1,
+                        trailColor: '#00f2fe'
+                    },
+                    lineStyle: createGlowingEffect(),
+                    data: links.map(link => {
+                        const source = hubs.find(hub => hub.name === link.source);
+                        const target = hubs.find(hub => hub.name === link.target);
+                        return {
+                            coords: [
+                                [source.value[0], source.value[1]],
+                                [target.value[0], target.value[1]]
+                            ],
+                            lineStyle: createGlowingEffect()
+                        };
+                    }),
+                    zlevel: 2
+                },
+                // 集群与枢纽连接线
+                {
+                    type: 'lines',
+                    coordinateSystem: 'geo',
+                    effect: {
+                        show: true,
+                        period: 8,
+                        trailWidth: 2,
+                        trailLength: 0.1,
+                        trailOpacity: 1,
+                        trailColor: '#ff00ff'
+                    },
+                    lineStyle: {
+                        color: {
+                            type: 'linear',
+                            x: 0, y: 0, x2: 1, y2: 0,
+                            colorStops: [
+                                {offset: 0, color: 'rgba(255, 0, 255, 0)'},
+                                {offset: 0.5, color: 'rgba(255, 0, 255, 0.6)'},
+                                {offset: 1, color: 'rgba(255, 0, 255, 0)'}
+                            ],
+                            global: false
+                        },
+                        width: 1.5,
+                        curveness: 0.2
+                    },
+                    data: clusters.map(cluster => {
+                        const parent = hubs.find(hub => hub.name === cluster.parent);
+                        return {
+                            coords: [
+                                [parent.value[0], parent.value[1]],
+                                [cluster.value[0], cluster.value[1]]
+                            ]
+                        };
+                    }),
+                    zlevel: 2
+                }
+            ]
+        });
+        
+        // 添加鼠标移动时的光晕效果
+        document.getElementById('mapContainer').addEventListener('mousemove', function(e) {
+            const rect = this.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const glow = document.querySelector('.glow');
+            glow.style.setProperty('--x', `${x}px`);
+            glow.style.setProperty('--y', `${y}px`);
+        });
+        
+        // 添加枢纽节点点击事件
+        chart.on('click', function(params) {
+            if (params.seriesType === 'effectScatter') {
+                const hubInfo = document.getElementById('hubInfo');
+                const hubName = document.getElementById('hubName');
+                const hubDetails = document.getElementById('hubDetails');
+                
+                const hub = hubs.find(h => h.name === params.name);
+                if (hub) {
+                    hubName.textContent = hub.name;
+                    hubDetails.textContent = hub.details;
+                    hubInfo.classList.add('active');
+                }
+            }
+        });
+        
+        // 窗口大小变化时重绘图表
+        window.addEventListener('resize', function() {
+            chart.resize();
+        });
+    </script>
+</body>
+</html>
